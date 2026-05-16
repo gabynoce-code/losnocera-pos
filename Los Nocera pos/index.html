@@ -134,6 +134,22 @@ tbody tr:last-child td{border-bottom:none}
 #confirm-monto{font-family:var(--fuente-titulo);font-size:3rem;font-weight:700;color:var(--verde);margin:12px 0}
 #confirm-vuelto{font-size:1.1rem;color:var(--texto-suave);margin-bottom:24px}
 .confirm-btns{display:flex;gap:12px}
+/* ── MODAL IMPORTAR ── */
+#import-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:250;align-items:center;justify-content:center;padding:16px}
+#import-overlay.visible{display:flex}
+#import-box{background:white;border-radius:var(--radio-grande);width:100%;max-width:440px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.3);animation:slideUp 0.2s ease}
+#import-header{background:var(--verde-oscuro);color:white;padding:16px 20px;font-family:var(--fuente-titulo);font-size:1.2rem;font-weight:700}
+#import-body{padding:20px;display:flex;flex-direction:column;gap:10px}
+#import-info{font-size:0.92rem;color:var(--texto-suave);line-height:1.6;margin-bottom:4px}
+.import-btn{width:100%;padding:14px 16px;border-radius:var(--radio);border:none;font-family:var(--fuente-titulo);font-size:1rem;font-weight:700;cursor:pointer;text-align:left;transition:all 0.15s;letter-spacing:0.3px}
+.import-btn:active{transform:scale(0.98)}
+.import-btn-agregar{background:var(--verde-suave);color:var(--verde-oscuro);border:2px solid var(--verde-claro)}
+.import-btn-agregar:hover{background:#b7e4c7}
+.import-btn-reemplazar{background:var(--rojo-suave);color:var(--rojo);border:2px solid #f5c6c6}
+.import-btn-reemplazar:hover{background:#f8d7d7}
+.import-btn-cancelar{background:#e5e7eb;color:var(--texto);border:2px solid transparent}
+.import-btn-cancelar:hover{background:#d1d5db}
+.import-btn-desc{font-size:0.78rem;font-weight:400;display:block;margin-top:3px;opacity:0.8}
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-track{background:var(--fondo)}
 ::-webkit-scrollbar-thumb{background:var(--verde-claro);border-radius:3px}
@@ -143,7 +159,6 @@ tbody tr:last-child td{border-bottom:none}
 .mt-12{margin-top:12px}
 .estado-vacio{text-align:center;padding:48px 24px;color:var(--texto-suave)}
 .estado-vacio .icono-grande{font-size:3rem;margin-bottom:12px}
-/* LABEL-BOTON para el input file */
 label.btn{display:inline-flex;cursor:pointer}
 label.btn input[type=file]{display:none}
 @media(max-width:900px){#layout-venta{grid-template-columns:1fr}#panel-der{position:static;order:-1}#carrito-lista{max-height:200px}}
@@ -164,7 +179,6 @@ label.btn input[type=file]{display:none}
 </nav>
 
 <main id="contenido">
-
   <!-- VENTA -->
   <section id="sec-venta" class="seccion activa">
     <div id="layout-venta">
@@ -176,7 +190,6 @@ label.btn input[type=file]{display:none}
             <button class="btn btn-verde" id="btn-camara" onclick="abrirCamara()" title="Escanear con cámara del celular" style="white-space:nowrap">📷 Cámara</button>
           </div>
           <div style="margin-top:8px;font-size:0.82rem;color:var(--texto-suave);">💡 Notebook: escáner USB automático · Celular: tocá 📷 Cámara</div>
-          <!-- Lector de cámara -->
           <div id="camara-zona" style="display:none;margin-top:12px;">
             <div id="camara-preview" style="width:100%;border-radius:10px;overflow:hidden;background:#000;"></div>
             <button class="btn btn-rojo btn-grande mt-8" onclick="cerrarCamara()">✕ Cerrar Cámara</button>
@@ -214,18 +227,14 @@ label.btn input[type=file]{display:none}
   <section id="sec-productos" class="seccion">
     <div id="barra-productos">
       <input type="search" id="busqueda-productos" placeholder="🔍 Buscar por nombre o código...">
-
       <button class="btn btn-verde" onclick="abrirModalNuevo()">+ Nuevo Producto</button>
-
-      <label class="btn btn-acento" title="Importar desde CSV de Loyverse">
-        📥 Importar Loyverse
+      <label class="btn btn-acento" title="Agregar productos desde CSV">
+        📥 Agregar Productos
         <input type="file" accept=".csv" onchange="importarCSVLoyverse(this.files[0]); this.value='';">
       </label>
-
       <button class="btn btn-gris btn-sm" onclick="exportarProductosLoyverse()">📤 Exportar → Loyverse</button>
       <button class="btn btn-gris btn-sm" onclick="exportarProductosSimple()">📊 Exportar → Excel</button>
     </div>
-
     <div class="tabla-wrap">
       <table>
         <thead>
@@ -254,7 +263,6 @@ label.btn input[type=file]{display:none}
     </div>
     <div id="historial-lista"><div class="estado-vacio"><div class="icono-grande">📋</div><p>No hay ventas todavía</p></div></div>
   </section>
-
 </main>
 
 <!-- MODAL PRODUCTO -->
@@ -277,6 +285,27 @@ label.btn input[type=file]{display:none}
   </div>
 </div>
 
+<!-- MODAL IMPORTAR (reemplaza el confirm() del navegador) -->
+<div id="import-overlay">
+  <div id="import-box">
+    <div id="import-header">📦 Importar Productos</div>
+    <div id="import-body">
+      <p id="import-info"></p>
+      <button class="import-btn import-btn-agregar" onclick="confirmarImportMode('agregar')">
+        ➕ AGREGAR PRODUCTOS
+        <span class="import-btn-desc">Agrega los nuevos y actualiza precios de los que ya existen. NUNCA borra ni duplica nada.</span>
+      </button>
+      <button class="import-btn import-btn-reemplazar" onclick="confirmarImportMode('reemplazar')">
+        ⚠️ REEMPLAZAR TODO
+        <span class="import-btn-desc">BORRA todos los productos actuales y los reemplaza. ¡NO SE PUEDE DESHACER!</span>
+      </button>
+      <button class="import-btn import-btn-cancelar" onclick="cerrarImportModal()">
+        Cancelar
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL CONFIRMACION COBRO -->
 <div id="confirm-overlay">
   <div id="confirm-box">
@@ -295,44 +324,25 @@ label.btn input[type=file]{display:none}
 
 <script>
 // ============================================================
-// LOS NOCERA POS - Todo el código en un solo archivo
+// LOS NOCERA POS
 // ============================================================
-
-const PRODUCTOS_EJEMPLO = [
-  {id:1,nombre:'Coca-Cola 500ml',codigo:'7790895000119',precio:1200,stock:24},
-  {id:2,nombre:'Agua Mineral 500ml',codigo:'7798082600021',precio:600,stock:36},
-  {id:3,nombre:'Pan Lactal Bimbo',codigo:'7791813000112',precio:1850,stock:10},
-  {id:4,nombre:'Leche Entera 1L',codigo:'7790070000014',precio:1100,stock:20},
-  {id:5,nombre:'Yerba Rosamonte 500g',codigo:'7791704000012',precio:2200,stock:15},
-  {id:6,nombre:'Azúcar 1kg',codigo:'7791813001119',precio:950,stock:30},
-  {id:7,nombre:'Arroz Largo Fino 1kg',codigo:'7791813002116',precio:1300,stock:25},
-  {id:8,nombre:'Fideos Tallarín 500g',codigo:'7790070000120',precio:750,stock:40},
-  {id:9,nombre:'Aceite Girasol 900ml',codigo:'7791813003113',precio:2800,stock:18},
-  {id:10,nombre:'Jabón Dove 90g',codigo:'7790310100018',precio:680,stock:22},
-  {id:11,nombre:'Lavandina 1L',codigo:'7791813004110',precio:550,stock:16},
-  {id:12,nombre:'Detergente Magistral',codigo:'7790625000019',precio:1400,stock:12},
-  {id:13,nombre:'Gaseosa Fanta 1.5L',codigo:'7790895000126',precio:1650,stock:20},
-  {id:14,nombre:'Café Cabrales 100g',codigo:'7791813005117',precio:1200,stock:14},
-  {id:15,nombre:'Galletitas Terrabusi',codigo:'7790580000013',precio:900,stock:30},
-];
 
 const DB = {
   getProductos(){try{const d=localStorage.getItem('nocera_productos');return d?JSON.parse(d):[]}catch{return[]}},
   setProductos(p){localStorage.setItem('nocera_productos',JSON.stringify(p))},
   getVentas(){try{const d=localStorage.getItem('nocera_ventas');return d?JSON.parse(d):[]}catch{return[]}},
   setVentas(v){localStorage.setItem('nocera_ventas',JSON.stringify(v))},
-  init(){if(this.getProductos().length===0)this.setProductos(PRODUCTOS_EJEMPLO)}
+  init(){} // No carga ejemplos: la tienda arranca vacía
 };
 
 let estado={carrito:[],tabActiva:'venta',productoEditando:null,busquedaTimer:null};
 
+// Variable global para import pendiente
+let importDataPendiente = null;
+
 function formatPrecio(n){
-  // Mostrar centavos solo si el precio los tiene (ej: 1456.31 → $1.456,31)
   const tiene_centavos = (n % 1) !== 0;
-  return '$'+Number(n).toLocaleString('es-AR',{
-    minimumFractionDigits: tiene_centavos ? 2 : 0,
-    maximumFractionDigits: 2
-  });
+  return '$'+Number(n).toLocaleString('es-AR',{minimumFractionDigits:tiene_centavos?2:0,maximumFractionDigits:2});
 }
 function formatFecha(iso){const d=new Date(iso);return d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})}
 function hoyISO(){return new Date().toISOString().split('T')[0]}
@@ -367,15 +377,21 @@ function cambiarTab(tab){
 }
 
 function normalizarCodigo(c){return String(c||'').replace(/[\s\r\n\t]/g,'').toLowerCase()}
+
+// Normaliza nombre para comparación (sin acentos, minúsculas, sin espacios extra)
+function normalizarNombre(n){
+  return (n||'').toLowerCase().trim()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/\s+/g,' ');
+}
+
 function buscarPorCodigo(cod){const b=normalizarCodigo(cod);if(!b)return null;return DB.getProductos().find(p=>normalizarCodigo(p.codigo)===b)||null}
 function buscarProductos(t){if(!t||t.length<1)return[];const tl=t.toLowerCase();return DB.getProductos().filter(p=>p.nombre.toLowerCase().includes(tl)||p.codigo.includes(tl)).slice(0,8)}
 
 function agregarAlCarrito(p){
-  // Si stock es 0 avisa pero NO bloquea (muchos negocios no usan control de stock)
   const ex=estado.carrito.find(i=>i.id===p.id);
   if(ex){ex.cantidad++;toast('✓ +1 '+p.nombre);}
   else{estado.carrito.push({id:p.id,nombre:p.nombre,precio:p.precio,cantidad:1});toast('✓ '+p.nombre);}
-  // Aviso visual si stock es 0, pero igual agrega
   if(p.stock<=0) toast('⚠️ '+p.nombre+' sin stock cargado','info');
   renderCarrito();
 }
@@ -471,7 +487,7 @@ function initScanner(){
     }
   });
   input.addEventListener('blur',()=>{
-    if(estado.tabActiva==='venta'&&!document.getElementById('overlay').classList.contains('visible')&&!document.getElementById('confirm-overlay').classList.contains('visible'))
+    if(estado.tabActiva==='venta'&&!document.getElementById('overlay').classList.contains('visible')&&!document.getElementById('confirm-overlay').classList.contains('visible')&&!document.getElementById('import-overlay').classList.contains('visible'))
       setTimeout(()=>input.focus(),50);
   });
 }
@@ -502,19 +518,19 @@ function agregarProductoPorId(id){
 
 function imprimirTicket(v){
   const fecha=formatFecha(v.fecha);
-  const items=v.items.map(i=>i.nombre.substring(0,22).padEnd(22)+' x'+i.cantidad+'  '+formatPrecio(i.precio*i.cantidad)).join('\n');
+  const items=v.items.map(i=>i.nombre.substring(0,22).padEnd(22)+' x'+i.cantidad+' '+formatPrecio(i.precio*i.cantidad)).join('\n');
   const win=window.open('','_blank','width=400,height=600');
   win.document.write(`<html><head><title>Ticket</title><style>body{margin:0;padding:8px;font-family:'Courier New',monospace;font-size:12px;}</style></head><body>
-    <div style="text-align:center;font-size:16px;font-weight:bold;margin-bottom:4px;">ALMACÉN LOS NOCERA</div>
-    <div style="text-align:center;font-size:10px;margin-bottom:8px;border-bottom:1px dashed #000;padding-bottom:4px;">${fecha}</div>
-    <pre style="margin:8px 0;font-size:11px;white-space:pre-wrap;">${items}</pre>
-    <div style="border-top:1px dashed #000;padding-top:6px;margin-top:4px;">
-      <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:14px;"><span>TOTAL</span><span>${formatPrecio(v.total)}</span></div>
-      ${v.efectivo>0?`<div style="display:flex;justify-content:space-between;font-size:11px;"><span>Efectivo</span><span>${formatPrecio(v.efectivo)}</span></div><div style="display:flex;justify-content:space-between;font-size:11px;"><span>Vuelto</span><span>${formatPrecio(v.vuelto)}</span></div>`:''}
-    </div>
-    <div style="text-align:center;font-size:10px;margin-top:8px;border-top:1px dashed #000;padding-top:4px;">¡Gracias por su compra!</div>
-    <script>window.onload=()=>{window.print();setTimeout(()=>window.close(),1000)}<\/script>
-  </body></html>`);
+<div style="text-align:center;font-size:16px;font-weight:bold;margin-bottom:4px;">ALMACÉN LOS NOCERA</div>
+<div style="text-align:center;font-size:10px;margin-bottom:8px;border-bottom:1px dashed #000;padding-bottom:4px;">${fecha}</div>
+<pre style="margin:8px 0;font-size:11px;white-space:pre-wrap;">${items}</pre>
+<div style="border-top:1px dashed #000;padding-top:6px;margin-top:4px;">
+<div style="display:flex;justify-content:space-between;font-weight:bold;font-size:14px;"><span>TOTAL</span><span>${formatPrecio(v.total)}</span></div>
+${v.efectivo>0?`<div style="display:flex;justify-content:space-between;font-size:11px;"><span>Efectivo</span><span>${formatPrecio(v.efectivo)}</span></div><div style="display:flex;justify-content:space-between;font-size:11px;"><span>Vuelto</span><span>${formatPrecio(v.vuelto)}</span></div>`:''}
+</div>
+<div style="text-align:center;font-size:10px;margin-top:8px;border-top:1px dashed #000;padding-top:4px;">¡Gracias por su compra!</div>
+<script>window.onload=()=>{window.print();setTimeout(()=>window.close(),1000)}<\/script>
+</body></html>`);
   win.document.close();
 }
 
@@ -522,7 +538,7 @@ function renderTablaProductos(termino=''){
   const tbody=document.getElementById('productos-tbody');
   if(!tbody)return;
   let productos=DB.getProductos();
-  if(termino){const t=termino.toLowerCase();productos=productos.filter(p=>p.nombre.toLowerCase().includes(t)||p.codigo.includes(t));}
+  if(termino){const t=termino.toLowerCase();productos=productos.filter(p=>p.nombre.toLowerCase().includes(t)||(p.codigo||'').includes(t));}
   productos.sort((a,b)=>a.nombre.localeCompare(b.nombre));
   if(!productos.length){tbody.innerHTML=`<tr><td colspan="5" class="centrado" style="padding:32px;color:var(--texto-suave);">No hay productos${termino?' para "'+termino+'"':''}</td></tr>`;return;}
   tbody.innerHTML=productos.map(p=>`
@@ -642,19 +658,15 @@ function exportarCSVVentas(){
   toast('✅ CSV de ventas exportado');
 }
 
-// ── IMPORTAR DESDE LOYVERSE ──────────────────────────────────
+// ── IMPORTAR ─────────────────────────────────────────────────
+
 function parsearCSV(texto, separador=null){
-  // Detectar separador automáticamente si no se especifica
   if(!separador){
     const primeraLinea = texto.split('\n')[0];
     separador = primeraLinea.includes('\t') ? '\t' : ',';
   }
   return texto.trim().split(/\r?\n/).map(linea=>{
-    if(separador==='\t'){
-      // TSV: separado por tabs, sin comillas complejas
-      return linea.split('\t').map(c=>c.trim());
-    }
-    // CSV: maneja comillas
+    if(separador==='\t') return linea.split('\t').map(c=>c.trim());
     const campos=[];let dentro=false,campo='';
     for(let i=0;i<linea.length;i++){
       const c=linea[i];
@@ -681,16 +693,8 @@ function limpiarNumero(s){
   if(!s) return 0;
   s = s.replace(/[$\s]/g,'').trim();
   if(!s) return 0;
-  // Formato "1.456,31" → punto=miles, coma=decimal (formato argentino)
-  if(s.includes(',') && s.includes('.')){
-    s = s.replace(/\./g,'').replace(',','.');
-  }
-  // Formato "1456,31" → solo coma como decimal
-  else if(s.includes(',') && !s.includes('.')){
-    s = s.replace(',','.');
-  }
-  // Formato "1456.31" → punto como decimal (formato Loyverse internacional)
-  // No tocar nada, parseFloat lo lee bien
+  if(s.includes(',') && s.includes('.')){s = s.replace(/\./g,'').replace(',','.');}
+  else if(s.includes(',') && !s.includes('.')){s = s.replace(',','.');}
   return parseFloat(s) || 0;
 }
 
@@ -702,18 +706,16 @@ function importarCSVLoyverse(archivo){
       const filas=parsearCSV(e.target.result);
       if(filas.length<2){toast('Archivo vacío o sin datos','error');return;}
 
-      // Normalizar headers
       const rawH=filas[0].map(h=>h.replace(/^["']|["']$/g,'').trim());
       const headers=rawH.map(h=>h.toLowerCase());
 
-      // Columnas de Loyverse en español
       const colNombre=encontrarCol(headers,['nombre','name','item name']);
-      const colPrecio=encontrarCol(headers,['precio','price']);
+      const colPrecio=encontrarCol(headers,['precio [losnocera]','precio','price [losnocera]','price']);
       const colCodigo=encontrarCol(headers,['codigo de barras','barcode','sku','ean']);
-      const colStock =encontrarCol(headers,['en inventario','in stock','stock','quantity','cantidad']);
+      const colStock =encontrarCol(headers,['en inventario [losnocera]','en inventario','in stock','stock','quantity','cantidad']);
 
-      if(colNombre===-1){toast('❌ No se encontró la columna "Nombre"','error');console.warn('Headers:',rawH);return;}
-      if(colPrecio===-1){toast('❌ No se encontró la columna "Precio"','error');console.warn('Headers:',rawH);return;}
+      if(colNombre===-1){toast('❌ No se encontró la columna "Nombre"','error');return;}
+      if(colPrecio===-1){toast('❌ No se encontró la columna "Precio"','error');return;}
 
       const nuevos=[];let saltadas=0;
       for(let i=1;i<filas.length;i++){
@@ -722,38 +724,21 @@ function importarCSVLoyverse(archivo){
         const nombre=f[colNombre]?.replace(/^["']|["']$/g,'').trim();
         if(!nombre){saltadas++;continue;}
         const precio=limpiarNumero(f[colPrecio]);
-        // No saltar si precio es 0, algunos productos pueden tener precio 0
+        if(!precio||precio<=0){saltadas++;continue;}
         const codigo=colCodigo!==-1?(f[colCodigo]||'').replace(/^["']|["']$/g,'').trim():'';
         const stock=colStock!==-1?(parseInt(f[colStock],10)||0):0;
         nuevos.push({id:generarId()+i,nombre,codigo,precio,stock:Math.max(0,stock)});
       }
 
-      if(!nuevos.length){toast('❌ No se encontraron productos con precio válido','error');return;}
+      if(!nuevos.length){toast('❌ No se encontraron productos válidos en el archivo','error');return;}
 
-      const existentes=DB.getProductos();
-      let reemplazar=true;
-      if(existentes.length>0){
-        reemplazar=confirm(
-          '📦 Se encontraron '+nuevos.length+' productos en el archivo.\n\n'+
-          'Actualmente tenés '+existentes.length+' productos cargados.\n\n'+
-          'OK       → REEMPLAZAR todo (borra los actuales)\n'+
-          'Cancelar → AGREGAR los nuevos (mantiene los actuales)'
-        );
-      }
-
-      if(reemplazar){
-        DB.setProductos(nuevos);
-        toast('✅ Importados '+nuevos.length+' productos de Loyverse');
-      }else{
-        const codigos=new Set(existentes.map(p=>p.codigo).filter(Boolean));
-        const soloNuevos=nuevos.filter(p=>!p.codigo||!codigos.has(p.codigo));
-        DB.setProductos([...existentes,...soloNuevos]);
-        const dup=nuevos.length-soloNuevos.length;
-        toast('✅ Agregados '+soloNuevos.length+' productos'+(dup>0?' ('+dup+' duplicados ignorados)':''));
-      }
-
-      if(saltadas>0)console.info('[Importar]',saltadas,'filas sin nombre o precio ignoradas');
-      renderTablaProductos();
+      // Guardar datos y mostrar modal propio
+      importDataPendiente = nuevos;
+      const existentes = DB.getProductos().length;
+      document.getElementById('import-info').innerHTML =
+        `Se encontraron <strong>${nuevos.length} productos</strong> en el archivo.<br>` +
+        `Actualmente tenés <strong>${existentes} productos</strong> cargados.`;
+      document.getElementById('import-overlay').classList.add('visible');
 
     }catch(err){
       console.error('[Importar]',err);
@@ -763,29 +748,86 @@ function importarCSVLoyverse(archivo){
   reader.readAsText(archivo,'UTF-8');
 }
 
-// ── EXPORTAR PRODUCTOS → FORMATO LOYVERSE ───────────────────
+function cerrarImportModal(){
+  importDataPendiente = null;
+  document.getElementById('import-overlay').classList.remove('visible');
+}
+
+function confirmarImportMode(modo){
+  const nuevos = importDataPendiente;
+  if(!nuevos){cerrarImportModal();return;}
+  cerrarImportModal();
+
+  if(modo === 'reemplazar'){
+    // REEMPLAZAR: borra todo y pone los nuevos
+    DB.setProductos(nuevos);
+    toast('✅ Reemplazados: '+nuevos.length+' productos cargados');
+
+  } else {
+    // AGREGAR: actualiza precio si existe, agrega si no existe
+    // Nunca borra, nunca duplica
+    const existentes = DB.getProductos();
+    const resultado = [...existentes];
+    let actualizados = 0, agregados = 0;
+
+    nuevos.forEach(pNuevo => {
+      let idx = -1;
+
+      // 1) Buscar por código de barras (si tiene)
+      if(pNuevo.codigo){
+        idx = resultado.findIndex(p => p.codigo && normalizarCodigo(p.codigo) === normalizarCodigo(pNuevo.codigo));
+      }
+
+      // 2) Si no encontró por código, buscar por nombre normalizado
+      if(idx === -1){
+        const nomNuevo = normalizarNombre(pNuevo.nombre);
+        idx = resultado.findIndex(p => normalizarNombre(p.nombre) === nomNuevo);
+      }
+
+      if(idx !== -1){
+        // Producto existe → solo actualizar precio, mantener todo lo demás
+        resultado[idx] = { ...resultado[idx], precio: pNuevo.precio };
+        actualizados++;
+      } else {
+        // Producto nuevo → agregar
+        resultado.push(pNuevo);
+        agregados++;
+      }
+    });
+
+    DB.setProductos(resultado);
+    let msg = '✅ ';
+    if(agregados > 0) msg += agregados + ' nuevos agregados';
+    if(agregados > 0 && actualizados > 0) msg += ', ';
+    if(actualizados > 0) msg += actualizados + ' precios actualizados';
+    toast(msg);
+  }
+
+  renderTablaProductos();
+}
+
+// ── EXPORTAR ─────────────────────────────────────────────────
+
 function exportarProductosLoyverse(){
   const productos=DB.getProductos();
   if(!productos.length){toast('No hay productos para exportar','error');return;}
   const cab=['Handle','REF','Nombre','Categoria','Descripción','Vendido por peso',
     'Opción 1 nombre','Opción 1 valor','Opción 2 nombre','Opción 2 valor','Opción 3 nombre','Opción 3 valor',
     'Coste','Codigo de barras','REF del componente','Cantidad del componente',
-    'Seguir el Inventario','Usar prodcucción','Proveedor','Costo de compra',
+    'Seguir el Inventario','Usar producción','Proveedor','Costo de compra',
     'Disponibles para la venta [LosNocera]','Precio [LosNocera]',
     'En inventario [LosNocera]','Existencias bajas [LosNocera]','Stock óptimo [LosNocera]'];
   const filas=[cab];
-  productos.forEach((p,i)=>filas.push([
-    i+1,'',p.nombre,'','','No','','','','','','','',p.codigo,'','','Sí','No','','','Sí',p.precio,p.stock,'','']));
+  productos.forEach((p,i)=>filas.push([i+1,'',p.nombre,'','','No','','','','','','','',p.codigo||'','','','Sí','No','','','Sí',p.precio,p.stock,'','']));
   descargarCSV(filas,'nocera_productos_loyverse_'+hoyISO()+'.csv');
   toast('✅ Exportados '+productos.length+' productos en formato Loyverse');
 }
 
-// ── EXPORTAR PRODUCTOS → EXCEL SIMPLE ───────────────────────
 function exportarProductosSimple(){
   const productos=DB.getProductos();
   if(!productos.length){toast('No hay productos para exportar','error');return;}
   const filas=[['Nombre','Código de Barras','Precio','Stock']];
-  productos.sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(p=>filas.push([p.nombre,p.codigo,p.precio,p.stock]));
+  productos.sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(p=>filas.push([p.nombre,p.codigo||'',p.precio,p.stock]));
   descargarCSV(filas,'nocera_productos_'+hoyISO()+'.csv');
   toast('✅ Exportados '+productos.length+' productos');
 }
@@ -799,14 +841,14 @@ function descargarCSV(filas,nombre){
   URL.revokeObjectURL(url);
 }
 
-// ── INICIALIZACIÓN ──────────────────────────────────────────
+// ── INICIALIZACIÓN ───────────────────────────────────────────
+
 document.addEventListener('DOMContentLoaded',()=>{
   DB.init();
   initScanner();
   initBusqueda();
   renderCarrito();
   setTimeout(()=>document.getElementById('scanner-input')?.focus(),200);
-
   document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>cambiarTab(b.dataset.tab)));
   document.getElementById('busqueda-productos')?.addEventListener('input',e=>debounce(()=>renderTablaProductos(e.target.value.trim()),220));
   document.getElementById('efectivo-input')?.addEventListener('input',calcularVuelto);
@@ -821,28 +863,25 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(e.key==='Escape'){
       cerrarModal();
       cerrarCamara();
+      cerrarImportModal();
       document.getElementById('confirm-overlay')?.classList.remove('visible');
     }
     if(e.key==='Enter'&&document.getElementById('overlay').classList.contains('visible')&&document.activeElement.tagName!=='TEXTAREA')guardarProducto();
   });
 });
 
-// ── ESCÁNER DE CÁMARA (celular) ─────────────────────────────
+// ── ESCÁNER DE CÁMARA ────────────────────────────────────────
+
 let html5QrScanner = null;
 
 function abrirCamara(){
   const zona = document.getElementById('camara-zona');
   zona.style.display = 'block';
-
-  // Cargar librería html5-qrcode si no está cargada
   if(typeof Html5Qrcode === 'undefined'){
     const script = document.createElement('script');
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js';
     script.onload = () => iniciarEscanerCamara();
-    script.onerror = () => {
-      toast('❌ No se pudo cargar el escáner. Verificá tu conexión.','error');
-      cerrarCamara();
-    };
+    script.onerror = () => {toast('❌ No se pudo cargar el escáner','error');cerrarCamara();};
     document.head.appendChild(script);
   } else {
     iniciarEscanerCamara();
@@ -850,12 +889,8 @@ function abrirCamara(){
 }
 
 function iniciarEscanerCamara(){
-  // Limpiar instancia anterior si existe
   if(html5QrScanner){
-    html5QrScanner.stop().catch(()=>{}).finally(()=>{
-      html5QrScanner = null;
-      crearEscanerNuevo();
-    });
+    html5QrScanner.stop().catch(()=>{}).finally(()=>{html5QrScanner=null;crearEscanerNuevo();});
   } else {
     crearEscanerNuevo();
   }
@@ -864,40 +899,21 @@ function iniciarEscanerCamara(){
 function crearEscanerNuevo(){
   const preview = document.getElementById('camara-preview');
   preview.innerHTML = '';
-
   html5QrScanner = new Html5Qrcode('camara-preview');
-
-  const config = {
-    fps: 10,
-    qrbox: { width: 250, height: 150 },
-    aspectRatio: 1.5,
-    supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
-  };
-
+  const config = {fps:10,qrbox:{width:250,height:150},aspectRatio:1.5,supportedScanTypes:[Html5QrcodeScanType.SCAN_TYPE_CAMERA]};
   html5QrScanner.start(
-    { facingMode: 'environment' }, // Cámara trasera
+    {facingMode:'environment'},
     config,
     (codigoLeido) => {
-      // Código escaneado con éxito
       const p = buscarPorCodigo(codigoLeido);
-      if(p){
-        agregarAlCarrito(p);
-        // Vibrar el celular como confirmación
-        if(navigator.vibrate) navigator.vibrate(100);
-        cerrarCamara();
-      } else {
-        toast('❌ Código no encontrado: ' + codigoLeido, 'error');
-        if(navigator.vibrate) navigator.vibrate([100,50,100]);
-      }
+      if(p){agregarAlCarrito(p);if(navigator.vibrate)navigator.vibrate(100);cerrarCamara();}
+      else{toast('❌ Código no encontrado: '+codigoLeido,'error');if(navigator.vibrate)navigator.vibrate([100,50,100]);}
     },
-    () => {} // Error de lectura continua, ignorar
-  ).catch(err => {
-    console.error('[Cámara]', err);
-    if(err.toString().includes('permission')){
-      toast('❌ Permiso de cámara denegado. Habilitalo en la configuración del celular.','error');
-    } else {
-      toast('❌ No se pudo acceder a la cámara','error');
-    }
+    ()=>{}
+  ).catch(err=>{
+    console.error('[Cámara]',err);
+    if(err.toString().includes('permission')){toast('❌ Permiso de cámara denegado','error');}
+    else{toast('❌ No se pudo acceder a la cámara','error');}
     cerrarCamara();
   });
 }
@@ -905,17 +921,12 @@ function crearEscanerNuevo(){
 function cerrarCamara(){
   const zona = document.getElementById('camara-zona');
   if(zona) zona.style.display = 'none';
-  if(html5QrScanner){
-    html5QrScanner.stop().catch(()=>{});
-    html5QrScanner = null;
-  }
-  // Devolver foco al campo de scanner
-  setTimeout(()=>document.getElementById('scanner-input')?.focus(), 100);
+  if(html5QrScanner){html5QrScanner.stop().catch(()=>{});html5QrScanner=null;}
+  setTimeout(()=>document.getElementById('scanner-input')?.focus(),100);
 }
 
-window.abrirCamara  = abrirCamara;
+window.abrirCamara = abrirCamara;
 window.cerrarCamara = cerrarCamara;
-
 </script>
 </body>
 </html>
